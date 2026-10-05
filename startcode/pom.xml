@@ -131,12 +131,12 @@
 		<dependency>
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-graphics</artifactId>
-			<version>14.0.2.1</version>
+			<version>17.0.12</version>
 		</dependency>
 		<dependency>
 			<groupId>org.openjfx</groupId>
 			<artifactId>javafx-controls</artifactId>
-			<version>14.0.2.1</version>
+			<version>17.0.12</version>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
