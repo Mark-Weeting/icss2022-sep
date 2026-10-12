@@ -11,9 +11,10 @@ import nl.han.ica.icss.ast.selectors.TagSelector;
 /**
  * This class extracts the ICSS Abstract Syntax Tree from the Antlr Parse tree.
  *
- * Nodes that can have children (stylesheet, stylerule, declaration) are pushed on the
- * stack when entered and popped when exited, after which they are added to their parent.
- * Leaf nodes (selectors, property names, literals) are added to the parent directly.
+ * Nodes that can have children (stylesheet, stylerule, declaration, variable assignment)
+ * are pushed on the stack when entered and popped when exited, after which they are added
+ * to their parent. Leaf nodes (selectors, property names, variable references, literals)
+ * are added to the parent directly.
  */
 public class ASTListener extends ICSSBaseListener {
 
@@ -82,6 +83,21 @@ public class ASTListener extends ICSSBaseListener {
 	}
 
 	@Override
+	public void enterVariableAssignment(ICSSParser.VariableAssignmentContext ctx) {
+		currentContainer.push(new VariableAssignment());
+	}
+
+	@Override
+	public void exitVariableAssignment(ICSSParser.VariableAssignmentContext ctx) {
+		addToParent(currentContainer.pop());
+	}
+
+	@Override
+	public void enterVariableReference(ICSSParser.VariableReferenceContext ctx) {
+		addToParent(new VariableReference(ctx.getText()));
+	}
+
+	@Override
 	public void enterColorLiteral(ICSSParser.ColorLiteralContext ctx) {
 		addToParent(new ColorLiteral(ctx.getText()));
 	}
@@ -94,6 +110,11 @@ public class ASTListener extends ICSSBaseListener {
 	@Override
 	public void enterPercentageLiteral(ICSSParser.PercentageLiteralContext ctx) {
 		addToParent(new PercentageLiteral(ctx.getText()));
+	}
+
+	@Override
+	public void enterBoolLiteral(ICSSParser.BoolLiteralContext ctx) {
+		addToParent(new BoolLiteral(ctx.getText()));
 	}
 
 	private void addToParent(ASTNode node) {
