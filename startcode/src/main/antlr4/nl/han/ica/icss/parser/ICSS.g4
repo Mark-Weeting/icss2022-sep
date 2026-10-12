@@ -62,13 +62,16 @@ variableAssignment: variableReference ASSIGNMENT_OPERATOR expression SEMICOLON;
 
 variableReference: CAPITAL_IDENT;
 
-expression: literal
-          | variableReference
+expression: expression MUL expression               #multiplyOperation
+          | expression (PLUS | MIN) expression      #addOrSubtractOperation
+          | literal                                 #literalExpression
+          | variableReference                       #variableReferenceExpression
           ;
 
 literal: COLOR          #colorLiteral
        | PIXELSIZE      #pixelLiteral
        | PERCENTAGE     #percentageLiteral
+       | SCALAR         #scalarLiteral
        | (TRUE | FALSE) #boolLiteral
        ;
 
