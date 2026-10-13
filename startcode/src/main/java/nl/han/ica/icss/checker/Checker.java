@@ -21,6 +21,7 @@ import nl.han.ica.icss.ast.literals.ColorLiteral;
 import nl.han.ica.icss.ast.literals.PercentageLiteral;
 import nl.han.ica.icss.ast.literals.PixelLiteral;
 import nl.han.ica.icss.ast.literals.ScalarLiteral;
+import nl.han.ica.icss.ast.operations.MultiplyOperation;
 import nl.han.ica.icss.ast.types.ExpressionType;
 
 /**
@@ -97,13 +98,54 @@ public class Checker {
             return checkVariableReference((VariableReference) expression);
         }
         if (expression instanceof Operation) {
-            Operation operation = (Operation) expression;
-            checkExpression(operation.lhs);
-            checkExpression(operation.rhs);
-            // The type of an operation is added later (CH02).
-            return ExpressionType.UNDEFINED;
+            return checkOperation((Operation) expression);
         }
         return ExpressionType.UNDEFINED;
+    }
+
+    // Checks both sides of the operation and returns the type of the result.
+    private ExpressionType checkOperation(Operation operation) {
+        ExpressionType left = checkExpression(operation.lhs);
+        ExpressionType right = checkExpression(operation.rhs);
+
+        // One of the sides already has an error so dont give a second error.
+        if (left == ExpressionType.UNDEFINED || right == ExpressionType.UNDEFINED) {
+            return ExpressionType.UNDEFINED;
+        }
+
+        // CH03: colors and booleans cannot be used in calculations
+        if (left == ExpressionType.COLOR || right == ExpressionType.COLOR) {
+            operation.setError("Colors cannot be used in calculations");
+            return ExpressionType.UNDEFINED;
+        }
+        if (left == ExpressionType.BOOL || right == ExpressionType.BOOL) {
+            operation.setError("Booleans cannot be used in calculations");
+            return ExpressionType.UNDEFINED;
+        }
+
+        // CH02: for multiplying, at least one side must be a scalar (dus bij 3 * 10px is 3 de scalar)
+        if (operation instanceof MultiplyOperation) {
+            if (left == ExpressionType.SCALAR) {
+                return right;
+            }
+            if (right == ExpressionType.SCALAR) {
+                return left;
+            }
+            operation.setError("Cannot multiply " + typeName(left) + " by " + typeName(right)
+                    + ", at least one side must be a scalar");
+            return ExpressionType.UNDEFINED;
+        }
+
+        // CH02: for adding and subtracting, both sides must have the same type (10px + 5px)
+        if (left != right) {
+            operation.setError("Cannot add or subtract " + typeName(left) + " and " + typeName(right));
+            return ExpressionType.UNDEFINED;
+        }
+        return left;
+    }
+
+    private String typeName(ExpressionType type) {
+        return type.name().toLowerCase();
     }
 
     // CH01: a variable must be defined before you use it

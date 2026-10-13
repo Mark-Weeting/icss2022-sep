@@ -139,4 +139,77 @@ class CheckerTest {
     void variableAssignedAgainInsideIfIsAllowed() {
         assertTrue(check("W := 0px; p { if [TRUE] { W := 200px; } width: W; }").isEmpty());
     }
+
+    // CH02: types in calculations
+
+    @Test
+    void addingSameTypesIsAllowed() {
+        assertTrue(check("p { width: 10px + 5px - 2px; height: 10% + 5%; }").isEmpty());
+    }
+
+    @Test
+    void addingPixelsAndPercentagesIsError() {
+        assertSingleError(check("p { width: 10px + 5%; }"), "Cannot add or subtract pixel and percentage");
+    }
+
+    @Test
+    void subtractingScalarFromPixelsIsError() {
+        assertSingleError(check("p { width: 10px - 2; }"), "Cannot add or subtract pixel and scalar");
+    }
+
+    @Test
+    void multiplyingWithScalarIsAllowed() {
+        assertTrue(check("p { width: 3 * 10px; height: 20% * 3; } A := 4 * 5;").isEmpty());
+    }
+
+    @Test
+    void multiplyingWithoutScalarIsError() {
+        assertSingleError(check("p { width: 2px * 3px; }"), "at least one side must be a scalar");
+    }
+
+    @Test
+    void typeOfVariableIsUsedInCalculation() {
+        assertSingleError(check("W := 10px; p { width: W + 5%; }"), "pixel and percentage");
+    }
+
+    @Test
+    void typeOfMultiplicationIsUsedInAddition() {
+        // 2 * 10px is pixel, so this is pixel + pixel
+        assertTrue(check("p { width: 50px + 2 * 10px; }").isEmpty());
+        // 2 * 10% is percentage, so this is pixel + percentage
+        assertSingleError(check("p { width: 50px + 2 * 10%; }"), "pixel and percentage");
+    }
+
+    @Test
+    void typeOfCalculatedVariableIsKnown() {
+        assertSingleError(check("W := 10px + 5px; p { width: W * 2px; }"), "at least one side must be a scalar");
+    }
+
+    @Test
+    void errorInsideCalculationGivesOnlyOneError() {
+        // Only the undefined variable is reported, not also the addition.
+        assertSingleError(check("p { width: Unknown + 5px; }"), "'Unknown' is not defined");
+    }
+
+    // CH03: no colors in calculations
+
+    @Test
+    void addingColorsIsError() {
+        assertSingleError(check("p { color: #ff0000 + #00ff00; }"), "Colors cannot be used in calculations");
+    }
+
+    @Test
+    void multiplyingColorIsError() {
+        assertSingleError(check("p { color: 2 * #ff0000; }"), "Colors cannot be used in calculations");
+    }
+
+    @Test
+    void colorVariableInCalculationIsError() {
+        assertSingleError(check("C := #ff0000; p { width: C - 10px; }"), "Colors cannot be used in calculations");
+    }
+
+    @Test
+    void booleanInCalculationIsError() {
+        assertSingleError(check("p { width: TRUE + 10px; }"), "Booleans cannot be used in calculations");
+    }
 }
