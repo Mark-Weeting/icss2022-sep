@@ -15,7 +15,7 @@ import nl.han.ica.icss.ast.selectors.TagSelector;
  * This class extracts the ICSS Abstract Syntax Tree from the Antlr Parse tree.
  *
  * Nodes that can have children (stylesheet, stylerule, declaration, variable assignment,
- * operations) are pushed on the stack when entered and popped when exited, after which they are added
+ * operations, if- and else-clauses) are pushed on the stack when entered and popped when exited, after which they are added
  * to their parent. Leaf nodes (selectors, property names, variable references, literals)
  * are added to the parent directly.
  */
@@ -98,6 +98,26 @@ public class ASTListener extends ICSSBaseListener {
 	@Override
 	public void enterVariableReference(ICSSParser.VariableReferenceContext ctx) {
 		addToParent(new VariableReference(ctx.getText()));
+	}
+
+	@Override
+	public void enterIfClause(ICSSParser.IfClauseContext ctx) {
+		currentContainer.push(new IfClause());
+	}
+
+	@Override
+	public void exitIfClause(ICSSParser.IfClauseContext ctx) {
+		addToParent(currentContainer.pop());
+	}
+
+	@Override
+	public void enterElseClause(ICSSParser.ElseClauseContext ctx) {
+		currentContainer.push(new ElseClause());
+	}
+
+	@Override
+	public void exitElseClause(ICSSParser.ElseClauseContext ctx) {
+		addToParent(currentContainer.pop());
 	}
 
 	@Override

@@ -47,7 +47,14 @@ ASSIGNMENT_OPERATOR: ':=';
 //--- PARSER: ---
 stylesheet: (variableAssignment | stylerule)* EOF;
 
-stylerule: selector OPEN_BRACE (declaration | variableAssignment)* CLOSE_BRACE;
+stylerule: selector OPEN_BRACE ruleBody CLOSE_BRACE;
+
+// The body of a rule
+ruleBody: (declaration | variableAssignment | ifClause)*;
+
+ifClause: IF BOX_BRACKET_OPEN expression BOX_BRACKET_CLOSE OPEN_BRACE ruleBody CLOSE_BRACE elseClause?;
+
+elseClause: ELSE OPEN_BRACE ruleBody CLOSE_BRACE;
 
 selector: LOWER_IDENT   #tagSelector
         | ID_IDENT      #idSelector
