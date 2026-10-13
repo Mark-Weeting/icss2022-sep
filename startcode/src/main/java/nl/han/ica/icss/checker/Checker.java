@@ -107,10 +107,11 @@ public class Checker {
     }
 
     // CH01: a variable must be defined before you use it
+    // CH06: and it must be defined in the current scope or a scope around it
     private ExpressionType checkVariableReference(VariableReference reference) {
         ExpressionType type = lookupVariable(reference.name);
         if (type == null) {
-            reference.setError("Variable '" + reference.name + "' is not defined");
+            reference.setError("Variable '" + reference.name + "' is not defined in this scope");
             return ExpressionType.UNDEFINED;
         }
         return type;

@@ -92,4 +92,51 @@ class CheckerTest {
     void variableCanBeAssignedFromOtherVariable() {
         assertTrue(check("A := 10px; B := A; p { width: B; }").isEmpty());
     }
+
+    // CH06: a variable can only be used inside its scope
+
+    @Test
+    void ruleVariableCanBeUsedLaterInSameRule() {
+        assertTrue(check("p { W := 10px; width: W; }").isEmpty());
+    }
+
+    @Test
+    void ruleVariableCannotBeUsedInOtherRule() {
+        assertSingleError(check("p { W := 10px; } a { width: W; }"), "'W' is not defined");
+    }
+
+    @Test
+    void ruleVariableCanBeUsedInsideIfOfThatRule() {
+        assertTrue(check("p { W := 10px; if [TRUE] { width: W; } }").isEmpty());
+    }
+
+    @Test
+    void globalVariableCanBeUsedInNestedIf() {
+        assertTrue(check("W := 10px; p { if [TRUE] { if [TRUE] { width: W; } } }").isEmpty());
+    }
+
+    @Test
+    void ifVariableCannotBeUsedAfterIf() {
+        assertSingleError(check("p { if [TRUE] { W := 10px; } width: W; }"), "'W' is not defined");
+    }
+
+    @Test
+    void ifVariableCannotBeUsedInElse() {
+        assertSingleError(check("p { if [TRUE] { W := 10px; } else { width: W; } }"), "'W' is not defined");
+    }
+
+    @Test
+    void elseVariableCannotBeUsedAfterElse() {
+        assertSingleError(check("p { if [TRUE] { } else { W := 10px; } width: W; }"), "'W' is not defined");
+    }
+
+    @Test
+    void nestedIfVariableCannotBeUsedInOuterIf() {
+        assertSingleError(check("p { if [TRUE] { if [TRUE] { W := 10px; } width: W; } }"), "'W' is not defined");
+    }
+
+    @Test
+    void variableAssignedAgainInsideIfIsAllowed() {
+        assertTrue(check("W := 0px; p { if [TRUE] { W := 200px; } width: W; }").isEmpty());
+    }
 }
