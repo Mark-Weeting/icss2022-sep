@@ -1,13 +1,17 @@
 package nl.han.ica.icss.generator;
 
-import nl.han.ica.icss.ast.*;
+import nl.han.ica.icss.ast.AST;
+import nl.han.ica.icss.ast.ASTNode;
+import nl.han.ica.icss.ast.Declaration;
+import nl.han.ica.icss.ast.Expression;
+import nl.han.ica.icss.ast.Selector;
+import nl.han.ica.icss.ast.Stylerule;
 import nl.han.ica.icss.ast.literals.ColorLiteral;
 import nl.han.ica.icss.ast.literals.PercentageLiteral;
 import nl.han.ica.icss.ast.literals.PixelLiteral;
 
 /**
- * Turns the AST into CSS. This only works after the Evaluator has run:
- * then all expressions are literals and all if-clauses are gone.
+ * Turns the AST into CSS. This only works after the Evaluator
  */
 public class Generator {
 
@@ -17,7 +21,6 @@ public class Generator {
     public String generate(AST ast) {
         StringBuilder css = new StringBuilder();
         for (ASTNode node : ast.root.body) {
-            // Variable assignments are not CSS, so they are skipped.
             if (node instanceof Stylerule) {
                 if (css.length() > 0) {
                     css.append("\n");
