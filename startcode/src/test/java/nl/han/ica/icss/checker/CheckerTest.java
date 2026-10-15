@@ -212,4 +212,73 @@ class CheckerTest {
     void booleanInCalculationIsError() {
         assertSingleError(check("p { width: TRUE + 10px; }"), "Booleans cannot be used in calculations");
     }
+
+    // CH04: the value must fit the property
+
+    @Test
+    void correctValuesForPropertiesAreAllowed() {
+        assertTrue(check("p { color: #ff0000; background-color: #00ff00; width: 10px; height: 50%; }").isEmpty());
+    }
+
+    @Test
+    void colorForWidthIsError() {
+        assertSingleError(check("p { width: #ff0000; }"), "Property 'width' needs a pixel or percentage value, not a color");
+    }
+
+    @Test
+    void pixelsForColorIsError() {
+        assertSingleError(check("p { color: 12px; }"), "Property 'color' needs a color, not a pixel");
+    }
+
+    @Test
+    void scalarAsValueIsError() {
+        assertSingleError(check("p { height: 10; }"), "not a scalar");
+    }
+
+    @Test
+    void booleanAsValueIsError() {
+        assertSingleError(check("p { background-color: TRUE; }"), "not a bool");
+    }
+
+    @Test
+    void typeOfVariableIsUsedForProperty() {
+        assertSingleError(check("C := #ff0000; p { width: C; }"), "not a color");
+    }
+
+    @Test
+    void typeOfCalculationIsUsedForProperty() {
+        assertSingleError(check("p { width: 2 * 5; }"), "not a scalar");
+    }
+
+    @Test
+    void unknownPropertyIsError() {
+        assertSingleError(check("p { font-size: 10px; }"), "Unknown property 'font-size'");
+    }
+
+    @Test
+    void errorInValueGivesOnlyOneError() {
+        assertSingleError(check("p { width: Unknown; }"), "'Unknown' is not defined");
+    }
+
+    // CH05: the condition of an if must be a boolean
+
+    @Test
+    void booleanConditionIsAllowed() {
+        assertTrue(check("Flag := FALSE; p { if [TRUE] { width: 1px; } if [Flag] { width: 2px; } }").isEmpty());
+    }
+
+    @Test
+    void pixelConditionIsError() {
+        assertSingleError(check("p { if [10px] { width: 1px; } }"), "must be a boolean, not a pixel");
+    }
+
+    @Test
+    void colorVariableAsConditionIsError() {
+        assertSingleError(check("C := #ff0000; p { if [C] { width: 1px; } }"), "must be a boolean, not a color");
+    }
+
+    @Test
+    void undefinedConditionGivesOnlyOneError() {
+        assertSingleError(check("p { if [Unknown] { width: 1px; } }"), "'Unknown' is not defined");
+    }
 }

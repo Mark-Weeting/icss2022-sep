@@ -53,7 +53,11 @@ public class Checker {
     }
 
     private void checkIfClause(IfClause ifClause) {
-        checkExpression(ifClause.conditionalExpression);
+        // CH05: the condition of an if must be a boolean
+        ExpressionType conditionType = checkExpression(ifClause.conditionalExpression);
+        if (conditionType != ExpressionType.BOOL && conditionType != ExpressionType.UNDEFINED) {
+            ifClause.setError("The condition of an if must be a boolean, not a " + typeName(conditionType));
+        }
 
         enterScope();
         checkBody(ifClause.body);
@@ -80,8 +84,31 @@ public class Checker {
         }
     }
 
+                // CH04: the type of the value must fit the property
     private void checkDeclaration(Declaration declaration) {
-        checkExpression(declaration.expression);
+        String property = declaration.property.name;
+        ExpressionType type = checkExpression(declaration.expression);
+
+        boolean isColorProperty = property.equals("color") || property.equals("background-color");
+        boolean isSizeProperty = property.equals("width") || property.equals("height");
+
+        if (!isColorProperty && !isSizeProperty) {
+            declaration.setError("Unknown property '" + property
+                    + "', only color, background-color, width and height are allowed");
+            return;
+        }
+
+        // The value already has an error so dont give another error.
+        if (type == ExpressionType.UNDEFINED) {
+            return;
+        }
+
+        if (isColorProperty && type != ExpressionType.COLOR) {
+            declaration.setError("Property '" + property + "' needs a color, not a " + typeName(type));
+        } else if (isSizeProperty && type != ExpressionType.PIXEL && type != ExpressionType.PERCENTAGE) {
+            declaration.setError("Property '" + property + "' needs a pixel or percentage value, not a "
+                    + typeName(type));
+        }
     }
 
     private void checkVariableAssignment(VariableAssignment assignment) {
