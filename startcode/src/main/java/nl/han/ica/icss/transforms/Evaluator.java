@@ -15,6 +15,7 @@ import nl.han.ica.icss.ast.Operation;
 import nl.han.ica.icss.ast.Stylerule;
 import nl.han.ica.icss.ast.VariableAssignment;
 import nl.han.ica.icss.ast.VariableReference;
+import nl.han.ica.icss.ast.literals.BoolLiteral;
 import nl.han.ica.icss.ast.literals.PercentageLiteral;
 import nl.han.ica.icss.ast.literals.PixelLiteral;
 import nl.han.ica.icss.ast.literals.ScalarLiteral;
@@ -45,7 +46,9 @@ public class Evaluator implements Transform {
             } else if (node instanceof Declaration) {
                 transformDeclaration((Declaration) node);
             } else if (node instanceof IfClause) {
-                transformIfClause((IfClause) node);
+                // TR02: the if-clause is not added, only the nodes of the chosen body.
+                newBody.addAll(transformIfClause((IfClause) node));
+                continue;
             }
             newBody.add(node);
         }
@@ -58,18 +61,23 @@ public class Evaluator implements Transform {
         exitScope();
     }
 
-    private void transformIfClause(IfClause ifClause) {
-        ifClause.conditionalExpression = evaluateExpression(ifClause.conditionalExpression);
+    // TR02: returns the nodes that replace the if-clause.
+    private ArrayList<ASTNode> transformIfClause(IfClause ifClause) {
+        BoolLiteral condition = (BoolLiteral) evaluateExpression(ifClause.conditionalExpression);
+
+        ArrayList<ASTNode> chosenBody;
+        if (condition.value) {
+            chosenBody = ifClause.body;
+        } else if (ifClause.elseClause != null) {
+            chosenBody = ifClause.elseClause.body;
+        } else {
+            return new ArrayList<>();
+        }
 
         enterScope();
-        ifClause.body = transformBody(ifClause.body);
+        ArrayList<ASTNode> newNodes = transformBody(chosenBody);
         exitScope();
-
-        if (ifClause.elseClause != null) {
-            enterScope();
-            ifClause.elseClause.body = transformBody(ifClause.elseClause.body);
-            exitScope();
-        }
+        return newNodes;
     }
 
     private void transformVariableAssignment(VariableAssignment assignment) {

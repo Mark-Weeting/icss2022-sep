@@ -1,23 +1,28 @@
 package nl.han.ica.icss.transforms;
 
-import nl.han.ica.icss.ast.*;
-import nl.han.ica.icss.ast.literals.BoolLiteral;
+import java.io.IOException;
+
+import org.antlr.v4.runtime.BailErrorStrategy;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
+
+import nl.han.ica.icss.ast.AST;
+import nl.han.ica.icss.ast.ASTNode;
+import nl.han.ica.icss.ast.IfClause;
+import nl.han.ica.icss.ast.Stylerule;
+import nl.han.ica.icss.ast.VariableAssignment;
 import nl.han.ica.icss.ast.literals.PixelLiteral;
 import nl.han.ica.icss.checker.Checker;
 import nl.han.ica.icss.generator.Generator;
 import nl.han.ica.icss.parser.ASTListener;
 import nl.han.ica.icss.parser.ICSSLexer;
 import nl.han.ica.icss.parser.ICSSParser;
-import org.antlr.v4.runtime.BailErrorStrategy;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
-import org.junit.jupiter.api.Test;
-
-import java.io.IOException;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class EvaluatorTest {
 
@@ -47,23 +52,23 @@ class EvaluatorTest {
 
     @Test
     void level2GivesExpectedCss() throws IOException {
-        String expected =
-                "p {\n" +
-                "  background-color: #ffffff;\n" +
-                "  width: 500px;\n" +
-                "}\n" +
-                "\n" +
-                "a {\n" +
-                "  color: #ff0000;\n" +
-                "}\n" +
-                "\n" +
-                "#menu {\n" +
-                "  width: 520px;\n" +
-                "}\n" +
-                "\n" +
-                ".menu {\n" +
-                "  color: #000000;\n" +
-                "}\n";
+        String expected
+                = "p {\n"
+                + "  background-color: #ffffff;\n"
+                + "  width: 500px;\n"
+                + "}\n"
+                + "\n"
+                + "a {\n"
+                + "  color: #ff0000;\n"
+                + "}\n"
+                + "\n"
+                + "#menu {\n"
+                + "  width: 520px;\n"
+                + "}\n"
+                + "\n"
+                + ".menu {\n"
+                + "  color: #000000;\n"
+                + "}\n";
 
         AST ast = evaluate(CharStreams.fromStream(getClass().getClassLoader().getResourceAsStream("level2.icss")));
 
@@ -113,22 +118,103 @@ class EvaluatorTest {
         assertEquals(new PixelLiteral(15), assignment.expression);
     }
 
+    // TR02: if/else clauses
     @Test
-    void ifConditionGetsLiteralValue() {
-        AST ast = evaluate("Flag := TRUE; p { if [Flag] { width: 1px; } }");
-        Stylerule rule = (Stylerule) ast.root.body.get(1);
-        IfClause ifClause = (IfClause) rule.body.get(0);
+    void level3GivesExpectedCss() throws IOException {
+        String expected
+                = "p {\n"
+                + "  background-color: #ffffff;\n"
+                + "  width: 500px;\n"
+                + "  color: #124532;\n"
+                + "  background-color: #000000;\n"
+                + "  height: 20px;\n"
+                + "}\n"
+                + "\n"
+                + "a {\n"
+                + "  color: #ff0000;\n"
+                + "}\n"
+                + "\n"
+                + "#menu {\n"
+                + "  width: 520px;\n"
+                + "}\n"
+                + "\n"
+                + ".menu {\n"
+                + "  color: #000000;\n"
+                + "  background-color: #ff0000;\n"
+                + "}\n";
 
-        assertTrue(ifClause.conditionalExpression instanceof BoolLiteral);
+        AST ast = evaluate(CharStreams.fromStream(getClass().getClassLoader().getResourceAsStream("level3.icss")));
+
+        assertEquals(expected, new Generator().generate(ast));
     }
 
     @Test
-    void expressionsInsideIfAndElseAreEvaluated() {
-        AST ast = evaluate("W := 5px; p { if [TRUE] { width: W * 2; } else { width: W + 1px; } }");
-        Stylerule rule = (Stylerule) ast.root.body.get(1);
-        IfClause ifClause = (IfClause) rule.body.get(0);
+    void trueIfIsReplacedByItsBodyOnTheSamePlace() {
+        assertEquals("p {\n  width: 1px;\n  height: 2px;\n  color: #000000;\n}\n",
+                evaluateToCss("p { width: 1px; if [TRUE] { height: 2px; } color: #000000; }"));
+    }
 
-        assertEquals(new PixelLiteral(10), ((Declaration) ifClause.body.get(0)).expression);
-        assertEquals(new PixelLiteral(6), ((Declaration) ifClause.elseClause.body.get(0)).expression);
+    @Test
+    void falseIfWithoutElseIsRemoved() {
+        assertEquals("p {\n  width: 1px;\n}\n", evaluateToCss("p { width: 1px; if [FALSE] { height: 2px; } }"));
+    }
+
+    @Test
+    void falseIfIsReplacedByElseBody() {
+        assertEquals("p {\n  height: 3px;\n}\n",
+                evaluateToCss("p { if [FALSE] { height: 2px; } else { height: 3px; } }"));
+    }
+
+    @Test
+    void trueIfIgnoresElseBody() {
+        assertEquals("p {\n  height: 2px;\n}\n",
+                evaluateToCss("p { if [TRUE] { height: 2px; } else { height: 3px; } }"));
+    }
+
+    @Test
+    void conditionCanBeVariable() {
+        assertEquals("p {\n  height: 3px;\n}\n",
+                evaluateToCss("Flag := FALSE; p { if [Flag] { height: 2px; } else { height: 3px; } }"));
+    }
+
+    @Test
+    void nestedIfsAreAllRemoved() {
+        assertEquals("p {\n  width: 1px;\n  height: 3px;\n}\n",
+                evaluateToCss("p { if [TRUE] { width: 1px; if [FALSE] { height: 2px; } else { height: 3px; } } }"));
+    }
+
+    @Test
+    void noIfClausesAreLeftInAst() {
+        AST ast = evaluate("p { if [TRUE] { if [TRUE] { width: 1px; } } if [FALSE] { width: 2px; } }");
+        Stylerule rule = (Stylerule) ast.root.body.get(0);
+
+        for (ASTNode node : rule.body) {
+            assertFalse(node instanceof IfClause);
+        }
+    }
+
+    @Test
+    void variableInsideIfIsUsedInsideIf() {
+        assertEquals("p {\n  width: 20px;\n}\n",
+                evaluateToCss("p { if [TRUE] { W := 10px; width: W * 2; } }"));
+    }
+
+    @Test
+    void assignmentInsideIfOnlyChangesVariableInsideIf() {
+        // Example from the assignment (4.4). Following the scope rules of Appendix A, the assignment
+        // inside the if makes a new local variable, so WidthVar is still 0px after the if.
+        String icss
+                = "AdjustWidth := TRUE;\n"
+                + "WidthVar := 0px;\n"
+                + "p {\n"
+                + "  if [AdjustWidth] {\n"
+                + "    WidthVar := 200px;\n"
+                + "  } else {\n"
+                + "    WidthVar := 250px;\n"
+                + "  }\n"
+                + "  width: WidthVar;\n"
+                + "}";
+
+        assertEquals("p {\n  width: 0px;\n}\n", evaluateToCss(icss));
     }
 }
