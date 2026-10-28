@@ -73,7 +73,7 @@ variableReference: CAPITAL_IDENT;
 
 expression: expression MUL expression               #multiplyOperation
           | expression (PLUS | MIN) expression      #addOrSubtractOperation
-          | PAREN_OPEN literal PAREN_CLOSE          #parenthesizedExpression
+          | PAREN_OPEN expression PAREN_CLOSE       #parenthesizedExpression
           | literal                                 #literalExpression
           | variableReference                       #variableReferenceExpression
           ;
