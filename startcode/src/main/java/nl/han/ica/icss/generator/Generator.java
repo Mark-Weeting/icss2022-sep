@@ -11,7 +11,7 @@ import nl.han.ica.icss.ast.literals.PercentageLiteral;
 import nl.han.ica.icss.ast.literals.PixelLiteral;
 
 /**
- * Turns the AST into CSS. This only works after the Evaluator
+ * Turns the AST into CSS. This only works after the Evaluator has run.
  */
 public class Generator {
 
